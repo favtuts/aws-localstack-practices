@@ -35,11 +35,141 @@ Stop services
 $ docker compose down
 ```
 
+
 # Connection to LocalStack
 
+After start services, LocalStack container will start an endpoint URL as `https://localhost:4566` or `https://localhost.localstack.cloud:4566`, which is being used by AWS CLI or SDK to emulate AWS services. There are also pre-defined external services port set to `4510-4599`. 
 
 Note: Starting with version 0.11.0, all APIs are exposed via a single edge service, which is accessible on `http://localhost:4566` by default (customizable via EDGE_PORT, see further below). Please use the single port 4566 (edge service) to access all LocalStack APIs from now on
 
+Verify the endpoint `info`:
+```bash
+$ curl --silent https://localhost.localstack.cloud:4566/_localstack/info | jq
+{
+  "version": "3.5.1.dev:b58b0f8ef",
+  "edition": "community",
+  "is_license_activated": false,
+  "session_id": "7e4bdece-0893-40cd-9ced-18d99a3e603e",
+  "machine_id": "dkr_2e4ab4757fd5",
+  "system": "linux",
+  "is_docker": true,
+  "server_time_utc": "2024-07-12T08:46:09",
+  "uptime": 2515
+}
+```
+
+Verify the endpoint `health`:
+```bash
+$ curl --silent https://localhost.localstack.cloud:4566/_localstack/health | jq
+{
+  "services": {
+    "acm": "disabled",
+    "apigateway": "disabled",
+    "cloudformation": "available",
+    "cloudwatch": "running",
+    "config": "disabled",
+    "dynamodb": "available",
+    "dynamodbstreams": "available",
+    "ec2": "disabled",
+    "es": "disabled",
+    "events": "disabled",
+    "firehose": "disabled",
+    "iam": "disabled",
+    "kinesis": "available",
+    "kms": "disabled",
+    "lambda": "disabled",
+    "logs": "disabled",
+    "opensearch": "disabled",
+    "redshift": "disabled",
+    "resource-groups": "disabled",
+    "resourcegroupstaggingapi": "disabled",
+    "route53": "disabled",
+    "route53resolver": "disabled",
+    "s3": "available",
+    "s3control": "disabled",
+    "scheduler": "disabled",
+    "secretsmanager": "disabled",
+    "ses": "disabled",
+    "sns": "running",
+    "sqs": "running",
+    "ssm": "available",
+    "stepfunctions": "disabled",
+    "sts": "available",
+    "support": "disabled",
+    "swf": "disabled",
+    "transcribe": "disabled"
+  },
+  "edition": "community",
+  "version": "3.5.1.dev"
+}
+```
+
+# Create Profile for LocalStack
+
+Now we can configure AWS profile and start using LocalStack:
+
+1 - Append these lines into your `~/.aws/config`:
+```ini
+[profile localstack]
+output = json
+region = us-east-1
+endpoint_url = https://localhost.localstack.cloud:4566
+cli_pager=
+```
+
+2 - Add the default AWS Access and Secret key of LocalStack into `~/.aws/credentials`:
+```ini
+[localstack]
+aws_access_key_id=test
+aws_secret_access_key=test
+```
+
+We are going to test Profile for LocalStack. The first example is creating a static website hosted in S3:
+1 - Created new S3 bucket:
+```bash
+$ AWS_PROFILE=localstack aws s3api create-bucket --bucket james-bucket
+{
+    "Location": "/james-bucket"
+}
+$ AWS_PROFILE=localstack aws s3 ls s3://
+2024-07-12 15:55:59 james-bucket
+```
+2 - Create a sample `index.html` with following content:
+```html
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Welcome to James' home</title>
+    </head>
+    <body>
+        <p>This is an example webpage to test a S3 static webapp in LocalStack.</p>
+    </body>
+</html>
+```
+3 - Upload the file into S3 and make it as static website:
+```bash
+$ AWS_PROFILE=localstack aws s3 cp bucketsamples/index.html s3://james-bucket
+upload: bucketsamples/index.html to s3://james-bucket/index.html
+```
+
+Make static website:
+```bash
+$ AWS_PROFILE=localstack aws s3 website s3://james-bucket --index-document index.html
+```
+
+Now we can test the website by opening this URL `https://james.s3-website.localhost.localstack.cloud:4566`:
+```bash
+$ curl https://james-bucket.s3-website.localhost.localstack.cloud:4566
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Welcome to James' home</title>
+    </head>
+    <body>
+        <p>This is an example webpage to test a S3 static webapp in LocalStack.</p>
+    </body>
+</html>
+```
 
 # Test LocalStack with SQS queue
 
@@ -105,13 +235,14 @@ $ aws --endpoint-url http://localhost:4566 s3 ls
 
 Create a text file:
 ```bash
-$ touch foobar.txt
-$ echo -e "sentence1 \nsentence2 \nsentence3" >> foobar.txt
+$ mkdir bucketsamples
+$ touch bucketsamples/foobar.txt
+$ echo -e "sentence1 \nsentence2 \nsentence3" >> bucketsamples/foobar.txt
 ```
 
 Upload file to your bucket
 ```bash
-$ aws --endpoint-url=http://localhost:4566 s3 cp foobar.txt s3://test-bucket
+$ aws --endpoint-url=http://localhost:4566 s3 cp bucketsamples/foobar.txt s3://test-bucket
 ```
 
 List objects in your bucket:
@@ -123,7 +254,6 @@ $ aws --endpoint-url=http://localhost:4566 s3 ls s3://test-bucket
 Delete this file
 ```bash
 $ aws --endpoint-url=http://localhost:4566 s3 rm s3://test-bucket/foobar.txt
-delete: s3://mytestbucket/mongo.log
 ```
 
 # Test LocalStack with DynamoDB
@@ -404,3 +534,6 @@ From now, Persistent is the feature only on LocalStack pro. For the community ed
 * https://gist.github.com/davidmerrick/db6cf82a279d59485ffc2d5de368940e
 * https://lobster1234.github.io/2017/04/05/working-with-localstack-command-line/
 * https://github.com/localstack/localstack/issues/510
+* https://www.devlo.io/run-localstack-with-docker-compose.html
+* https://medium.com/wearesinch/simulating-aws-environment-locally-with-aws-localstack-ad5a80413d71
+* https://tunguyen9889.medium.com/localstack-getting-started-85b5d2699eef
