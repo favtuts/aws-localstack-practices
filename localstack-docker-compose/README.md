@@ -308,6 +308,91 @@ $ aws --endpoint-url=http://localhost:4566 sns publish  --topic-arn arn:aws:sns:
 }
 ```
 
+## SNS-SQS Fanout
+* https://docs.aws.amazon.com/sns/latest/dg/sns-sqs-as-subscriber.html
+
+When you subscribe an Amazon SQS queue to an Amazon SNS topic, you can publish a message to the topic and Amazon SNS sends an Amazon SQS message to the subscribed queue.
+
+
+Create a SQS first
+```bash
+$ aws --endpoint-url=http://localhost:4566 sqs create-queue --queue-name fan-out-sqs
+{
+    "QueueUrl": "http://sqs.us-east-1.localhost.localstack.cloud:4566/000000000000/fan-out-sqs"
+}
+```
+Get QueueArn attribute
+```bash
+$ aws sqs get-queue-attributes --queue-url http://sqs.us-east-1.localhost.localstack.cloud:4566/000000000000/fan-out-sqs --attribute-names QueueArn --endpoint-url=http://localhost:4566
+{
+    "Attributes": {
+        "QueueArn": "arn:aws:sqs:us-east-1:000000000000:fan-out-sqs"
+    }
+}
+```
+
+Create a SNS topic
+```bash
+$ aws --endpoint-url=http://localhost:4566 sns create-topic --name fan-out-topic
+{
+    "TopicArn": "arn:aws:sns:us-east-1:000000000000:fan-out-topic"
+}
+```
+
+Subscribe SQS with QueueArn to SNS topic
+```bash
+$ aws --endpoint-url=http://localhost:4566 sns subscribe --protocol sqs --topic-arn "arn:aws:sns:us-east-1:000000000000:fan-out-topic"  --notification-endpoint "arn:aws:sqs:us-east-1:000000000000:fan-out-sqs"
+{
+    "SubscriptionArn": "arn:aws:sns:us-east-1:000000000000:fan-out-topic:da814fd5-448b-4ad4-bf48-34c2e447385f"
+}
+```
+
+Verify the list of subscriptions
+```bash
+$ aws --endpoint-url=http://localhost:4566 sns list-subscriptions
+{
+    "Subscriptions": [
+        {
+            "SubscriptionArn": "arn:aws:sns:us-east-1:000000000000:test-topic:568e05b4-a34d-43e5-9bab-39d59b6fb10d",
+            "Owner": "000000000000",
+            "Protocol": "email",
+            "Endpoint": "favtuts@gmail.com",
+            "TopicArn": "arn:aws:sns:us-east-1:000000000000:test-topic"
+        },
+        {
+            "SubscriptionArn": "arn:aws:sns:us-east-1:000000000000:fan-out-topic:da814fd5-448b-4ad4-bf48-34c2e447385f",
+            "Owner": "000000000000",
+            "Protocol": "sqs",
+            "Endpoint": "arn:aws:sqs:us-east-1:000000000000:fan-out-sqs",
+            "TopicArn": "arn:aws:sns:us-east-1:000000000000:fan-out-topic"
+        }
+    ]
+}
+```
+
+Publish a message to SNS
+```bash
+$ aws --endpoint-url=http://localhost:4566 sns  publish --topic-arn "arn:aws:sns:us-east-1:000000000000:fan-out-topic" --message "for fanout"
+{
+    "MessageId": "c6413aef-e739-4846-8b26-b39a1df9f939"
+}
+```
+
+Final, you can receive the message on SQS
+```bash
+$ aws --endpoint-url=http://localhost:4566 sqs receive-message --queue-url http://sqs.us-east-1.localhost.localstack.cloud:4566/000000000000/fan-out-sqs
+{
+    "Messages": [
+        {
+            "MessageId": "557bfbb7-921f-421e-b5b7-bda2358ba055",
+            "ReceiptHandle": "ZTUzZTNhNWYtM2ZlZS00MGM2LWJmODUtMzhiMThhNDdiYTA1IGFybjphd3M6c3FzOnVzLWVhc3QtMTowMDAwMDAwMDAwMDA6ZmFuLW91dC1zcXMgNTU3YmZiYjctOTIxZi00MjFlLWI1YjctYmRhMjM1OGJhMDU1IDE3MjA3NzM0MTguMzk5NTg1Nw==",
+            "MD5OfBody": "ba4044a34e66748b78600dc4fb5615cf",
+            "Body": "{\"Type\": \"Notification\", \"MessageId\": \"c6413aef-e739-4846-8b26-b39a1df9f939\", \"TopicArn\": \"arn:aws:sns:us-east-1:000000000000:fan-out-topic\", \"Message\": \"for fanout\", \"Timestamp\": \"2024-07-12T08:35:13.408Z\", \"UnsubscribeURL\": \"http://localhost.localstack.cloud:4566/?Action=Unsubscribe&SubscriptionArn=arn:aws:sns:us-east-1:000000000000:fan-out-topic:da814fd5-448b-4ad4-bf48-34c2e447385f\", \"SignatureVersion\": \"1\", \"Signature\": \"NLGMBnblch3NJn+49kkh+GhZ52/Uqg6McvsdsnVoHGflCs+X9qN4ZIkY3dEXkScI4TnD0OavelT+lFX+o+4FihWMS0GD2ZeAwA3JIMQy8kfhsUifNJyR/WZmNEKhYq0jYqZ9DetpSrzzsaX2+WBXJ7aX6GwnZlaD5z/PEc/kmEwquPyny0dKO3/Q7mXq0q0cbX4QFwR2S51wYsFoNoLaF6uV5N4mgtX7A3LFVkRC/v1OPQRxinKhfdD2F+NMO4fzticMfedfAHanUJBJYyLpYDfR6xqS/5Cexv8iCJKlav6hjWLTj/1W9LF0S9pIgmR9sqZsrxts3XQnlJbfCu7oOg==\", \"SigningCertURL\": \"http://localhost.localstack.cloud:4566/_aws/sns/SimpleNotificationService-6c6f63616c737461636b69736e696365.pem\"}"
+        }
+    ]
+}
+```
+
 
 # LocalStack peristentce
 
@@ -318,3 +403,4 @@ From now, Persistent is the feature only on LocalStack pro. For the community ed
 * https://github.com/kevinadhiguna/jiyu/tree/master/aws-localstack
 * https://gist.github.com/davidmerrick/db6cf82a279d59485ffc2d5de368940e
 * https://lobster1234.github.io/2017/04/05/working-with-localstack-command-line/
+* https://github.com/localstack/localstack/issues/510
