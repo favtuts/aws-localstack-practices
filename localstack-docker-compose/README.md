@@ -33,6 +33,42 @@ $ docker compose down
 ```
 
 
+# Test LocalStack with SQS queue
+
+Append the `sqs` to the `SERVICES` varbiable in the file `.env`, then start services again.
+
+Let's create a SQS queue
+```bash
+$ aws --endpoint-url=http://localhost:4566 sqs create-queue --queue-name hello-world
+{
+    "QueueUrl": "http://sqs.us-east-1.localhost.localstack.cloud:4566/000000000000/hello-world"
+}
+```
+
+Let’s send a message to the new queue:
+```bash
+$ aws --endpoint-url=http://localhost:4566 sqs send-message --queue-url http://sqs.us-east-1.localhost.localstack.cloud:4566/000000000000/hello-world --message-body "My first Message"
+{
+    "MD5OfMessageBody": "f34fac8f20963dabd7a76a2f0ea7b3bc",
+    "MessageId": "59b27acb-ae97-4b16-89ee-e7e272511200"
+}
+```
+
+We can also see the messages from our new queue:
+```bash
+$ aws --endpoint-url=http://localhost:4566 sqs receive-message --queue-url http://sqs.us-east-1.localhost.localstack.cloud:4566/000000000000/hello-world --max-number-of-messages 10
+{
+    "Messages": [
+        {
+            "MessageId": "59b27acb-ae97-4b16-89ee-e7e272511200",
+            "ReceiptHandle": "NTI5ZjAwMmQtNWVmZS00ZjdkLTk4ZDktMDU3NDNlZjM5N2ZmIGFybjphd3M6c3FzOnVzLWVhc3QtMTowMDAwMDAwMDAwMDA6aGVsbG8td29ybGQgNTliMjdhY2ItYWU5Ny00YjE2LTg5ZWUtZTdlMjcyNTExMjAwIDE3MjA3NjgxMDIuNDE2OTg0OA==",
+            "MD5OfBody": "f34fac8f20963dabd7a76a2f0ea7b3bc",
+            "Body": "My first Message"
+        }
+    ]
+}
+```
+
 # Test LocalStack with S3 bucket
 
 Create a S3 Bucket:
