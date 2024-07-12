@@ -257,6 +257,58 @@ $ aws --endpoint-url=http://localhost:4566 dynamodb query --table-name test_tabl
 }
 ```
 
+# Test LocalStack with SNS
+
+## Create a topic
+
+List all topics
+```bash
+$ aws --endpoint-url=http://localhost:4566 sns list-topics
+```
+
+Create new topic
+```bash
+$ aws --endpoint-url=http://localhost:4566 sns create-topic --name test-topic
+{
+    "TopicArn": "arn:aws:sns:us-east-1:000000000000:test-topic"
+}
+```
+
+List topics again to verify
+```bash
+$ aws --endpoint-url=http://localhost:4566 sns list-topics
+{
+    "Topics": [
+        {
+            "TopicArn": "arn:aws:sns:us-east-1:000000000000:test-topic"
+        }
+    ]
+}
+```
+
+
+## Subscribe to the topic
+
+(use any random email)
+
+```bash
+$ aws --endpoint-url=http://localhost:4566 sns subscribe --topic-arn arn:aws:sns:us-east-1:000000000000:test-topic --protocol email --notification-endpoint favtuts@gmail.com
+{
+    "SubscriptionArn": "arn:aws:sns:us-east-1:000000000000:test-topic:568e05b4-a34d-43e5-9bab-39d59b6fb10d"
+}
+```
+
+
+## Publish to this topic
+
+```bash
+$ aws --endpoint-url=http://localhost:4566 sns publish  --topic-arn arn:aws:sns:us-east-1:000000000000:test-topic --message 'Test Message!'
+{
+    "MessageId": "fa345427-a0a4-48e3-9a09-b8b482eae1f8"
+}
+```
+
+
 # LocalStack peristentce
 
 From now, Persistent is the feature only on LocalStack pro. For the community edition, can consider to user the open source image: https://hub.docker.com/r/gresau/localstack-persist
