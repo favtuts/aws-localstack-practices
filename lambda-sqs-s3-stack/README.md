@@ -81,7 +81,6 @@ $ awslocal s3api list-buckets
 }
 ```
 
-
 # Testing services
 
 First, we need to [install `pipenv`](https://realpython.com/pipenv-guide/):
@@ -327,25 +326,40 @@ print(function_url)
 Now let’s call the function manually with the following bash command.
 ```bash
 curl -X POST \
-    'http://ouko2s9kmqdrrzc3lvkhewsnoptv4ju8.lambda-url.us-east-1.localhost.localstack.cloud:4566/' \
+    'http://014w3wwjy064r57owye0b948x7bi8exo.lambda-url.us-east-1.localhost.localstack.cloud:4566' \
     -H 'Content-Type: application/json'
 ```
 
 After the invocation, a new docker container is created specifically for this function to run in. This is done to create a container for our lambda runtime and is an easy and efficient way to get started.
 
-Delete a function
+You can using AWS CLI to invoke the lambda:
+```bash
+$ awslocal lambda invoke \
+    --function-name hello-python-test \
+    --cli-binary-format raw-in-base64-out \
+    --payload '{ "name": "Bob" }' \
+    response.json
 ```
+
+Delete a function
+```bash
 $ awslocal lambda delete-function --function-name hello-python-test
 ```
 
 List all function
-```
+```bash
 $ awslocal lambda list-functions --region us-east-1
 ```
 
 Get function with name
-```
+```bash
 $ awslocal lambda list-functions --region us-east-1 --query 'Functions[?starts_with(FunctionName, `hello-python-test`) == `true`].FunctionName' --output text
+```
+
+Get function information
+```bash
+$ awslocal lambda get-function \
+    --function-name  hello-python-test
 ```
 
 # Application with all services
@@ -372,6 +386,55 @@ create_queue_resp = sqs.create_queue(
     QueueName='app-queue',
 )
 ```
+
+Verify S3 resources
+```bash
+$ awslocal s3api list-buckets
+{
+    "Buckets": [
+        {
+            "Name": "app-bucket",
+            "CreationDate": "2024-07-15T05:31:18+00:00"
+        }
+    ],
+    "Owner": {
+        "DisplayName": "webfile",
+        "ID": "75aa57f09aa0c8caeab4f8c24e99d10f8e7faeebf76c078efc7c6caea54ba06a"
+    }
+}
+```
+
+Verify SQS resources
+```bash
+$ awslocal sqs list-queues --max-items 15
+{
+    "QueueUrls": [
+        "http://sqs.us-east-1.localhost.localstack.cloud:4566/000000000000/app-queue"
+    ]
+}
+```
+
+Get SQS Attributes
+```bash
+$ awslocal sqs get-queue-attributes --queue-url http://sqs.us-east-1.localhost.localstack.cloud:4566/000000000000/app-queue --attribute-names All
+{
+    "Attributes": {
+        "ApproximateNumberOfMessages": "0",
+        "ApproximateNumberOfMessagesNotVisible": "0",
+        "ApproximateNumberOfMessagesDelayed": "0",
+        "CreatedTimestamp": "1721021478",
+        "DelaySeconds": "0",
+        "LastModifiedTimestamp": "1721021478",
+        "MaximumMessageSize": "262144",
+        "MessageRetentionPeriod": "345600",
+        "QueueArn": "arn:aws:sqs:us-east-1:000000000000:app-queue",
+        "ReceiveMessageWaitTimeSeconds": "0",
+        "VisibilityTimeout": "30",
+        "SqsManagedSseEnabled": "true"
+    }
+}
+```
+
 
 Now we can set up our publisher, which will be responsible for sending data to the queue every two seconds.
 ```python
@@ -431,4 +494,121 @@ def handler(event, context):
     )
 
     os.remove(filename)
+```
+
+Create a zip file for this function
+```bash
+$ zip app/consumer.zip app/consumer.py
+```
+
+We need to create a function with event source mapping that will trigger our Lambda function after 20 new messages are added to the SQS queue (`BatchSize=20`), or it will collect all the messages every 60 seconds (`MaximumBatchingWindowInSeconds=60`).
+```python
+import boto3
+
+endpoint_url = "http://localhost.localstack.cloud:4566"
+lambda_client = boto3.client('lambda', endpoint_url=endpoint_url)
+
+# creating function from zip file
+zip_filename = "consumer.zip"
+with open(zip_filename, 'rb') as f:
+    create_resp = lambda_client.create_function(
+        FunctionName="consumer",
+        Runtime="python3.10",
+        Role="arn:aws:iam::000000000000:role/lambda-role",
+        Handler="consumer.handler",
+        Code={'ZipFile': f.read()},
+        MemorySize=128,
+    )
+
+# creating event source mapping, which allows read last 20 inputs to the SQS queue
+event_source_resp = lambda_client.create_event_source_mapping(
+    EventSourceArn='arn:aws:sqs:ap-southeast-1:000000000000:app-queue',
+    FunctionName='consumer',
+    Enabled=True,
+    BatchSize=20,
+    MaximumBatchingWindowInSeconds=60,   
+)
+```
+
+Verify lambda function
+```bash
+$ awslocal lambda list-functions --region us-east-1 --query 'Functions[?starts_with(FunctionName, `consumer`) == `true`].FunctionName'
+```
+
+Get lambda function info
+```bash
+$ awslocal lambda get-function \
+    --function-name  consumer
+```
+
+
+Run the publisher and check S3 file:
+```bash
+$ awslocal s3api list-objects --bucket app-bucket --query 'Contents[].{Key: Key, Size: Size}'
+
+[
+    {
+        "Key": "/tmp/app_output-2024-07-15_07:33:56.txt",
+        "Size": 39
+    },
+    {
+        "Key": "/tmp/app_output-2024-07-15_07:34:26.txt",
+        "Size": 39
+    },
+    {
+        "Key": "/tmp/app_output-2024-07-15_07:34:28.txt",
+        "Size": 39
+    },
+    {
+        "Key": "/tmp/app_output-2024-07-15_07:34:30.txt",
+        "Size": 39
+    },
+    {
+        "Key": "/tmp/app_output-2024-07-15_07:34:32.txt",
+        "Size": 39
+    },
+    {
+        "Key": "/tmp/app_output-2024-07-15_07:34:34.txt",
+        "Size": 39
+    },
+    {
+        "Key": "/tmp/app_output-2024-07-15_07:34:36.txt",
+        "Size": 39
+    },
+    {
+        "Key": "/tmp/app_output-2024-07-15_07:34:38.txt",
+        "Size": 39
+    },
+    {
+        "Key": "/tmp/app_output-2024-07-15_07:34:40.txt",
+        "Size": 39
+    },
+```
+
+And check the SQS count
+```bash
+$ aws sqs get-queue-attributes --queue-url https://sqs.<region>.amazonaws.com/<accountId>/<SQS name> --attribute-names All
+$ awslocal sqs get-queue-attributes --queue-url http://sqs.us-east-1.localhost.localstack.cloud:4566/000000000000/app-queue --attribute-names All
+```
+
+You can also test your lambda function
+```bash
+$ awslocal lambda invoke \
+    --function-name consumer \
+    --cli-binary-format raw-in-base64-out \
+    --payload '{ "name": "Bob" }' \
+    response.json
+
+{
+    "StatusCode": 200,
+    "ExecutedVersion": "$LATEST"
+}
+```
+
+For some test commands
+```
+$ awslocal lambda get-function \
+    --function-name  consumer
+$ awslocal lambda delete-function --function-name consumer
+$ zip consumer.zip consumer.py
 ```

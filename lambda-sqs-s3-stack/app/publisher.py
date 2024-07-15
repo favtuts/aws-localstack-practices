@@ -19,4 +19,6 @@ while True:
         MessageBody=message
     )
     
+    print('Sent message \n' + message);
+    
     time.sleep(2)
