@@ -276,3 +276,74 @@ response = sqs.delete_queue(
     QueueUrl=queue_url
 )
 ```
+
+
+# AWS Lambda
+
+Let’s start by creating a basic hello world function that will print the classic message for every programmer.
+```python
+def handler(event, context):
+    print("Hello, World!")
+    # You can add more logic here if needed
+    return {
+        'statusCode': 200,
+        'body': 'Hello, World!'
+    }
+```
+
+We need to zip the function since Lambda works with compressed files.
+```bash
+$ zip hello_world.zip hello_world.py
+```
+
+As the next step, we can create a Lambda function using the zip file and generate a URL for manual triggering.
+```python
+endpoint_url = "http://localhost.localstack.cloud:4566"
+
+lambda_client = boto3.client('lambda', endpoint_url=endpoint_url)
+
+zip_filename = "hello_world.zip"
+with open(zip_filename, 'rb') as f:
+    create_resp = lambda_client.create_function(
+        FunctionName="hello-python-test",
+        Runtime="python3.10",
+        Role="arn:aws:iam::000000000000:role/lambda-role",
+        Handler="hello_world.handler",
+        Code={'ZipFile': f.read()},
+        MemorySize=128,
+    )
+    
+    print(create_resp)
+
+create_url_resp = lambda_client.create_function_url_config(
+    FunctionName="hello-python-test",
+    AuthType="NONE",
+)
+
+function_url = create_url_resp["create_url_resp"]
+print(function_url)
+```
+
+Now let’s call the function manually with the following bash command.
+```bash
+curl -X POST \
+    'http://ouko2s9kmqdrrzc3lvkhewsnoptv4ju8.lambda-url.us-east-1.localhost.localstack.cloud:4566/' \
+    -H 'Content-Type: application/json'
+```
+
+After the invocation, a new docker container is created specifically for this function to run in. This is done to create a container for our lambda runtime and is an easy and efficient way to get started.
+
+Delete a function
+```
+$ awslocal lambda delete-function --function-name hello-python-test
+```
+
+List all function
+```
+$ awslocal lambda list-functions --region us-east-1
+```
+
+Get function with name
+```
+$ awslocal lambda list-functions --region us-east-1 --query 'Functions[?starts_with(FunctionName, `hello-python-test`) == `true`].FunctionName' --output text
+```
