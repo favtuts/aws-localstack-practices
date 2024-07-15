@@ -16,15 +16,13 @@ services:
       - "127.0.0.1:4571:4571"
     environment:
       # Specify the services in a variable named LOCALSTACK_SERVICES, otherwise localstack does not work...
-      - SERVICES=${LOCALSTACK_SERVICES:-ssm,cloudwatch,cloudformation}
-      - DATA_DIR=${LOCALSTACK_DATA_DIR:-/tmp/localstack/data}
+      - SERVICES=${LOCALSTACK_SERVICES:-ssm,cloudwatch,cloudformation}      
       - AWS_DEFAULT_REGION=us-east-1
       - DEBUG=${DEBUG:-1}
-      - EDGE_PORT=${LOCALSTACK_EDGE_PORT:-4566}
-      - LAMBDA_EXECUTOR=${LAMBDA_EXECUTOR:-local}
-      - LOCALSTACK_API_KEY=${LOCALSTACK_API_KEY- }  # only required for Pro
-      - HOST_TMP_FOLDER=${TMPDIR:-/tmp/}localstack
+      - EDGE_PORT=${LOCALSTACK_EDGE_PORT:-4566}      
+      - LOCALSTACK_API_KEY=${LOCALSTACK_API_KEY- }  # only required for Pro      
       - DOCKER_HOST=unix:///var/run/docker.sock
+      - PERSISTENCE=1
     volumes:
       - "./localstack_data:/var/lib/localstack" # Mounts the local directory to the container
       - "/var/run/docker.sock:/var/run/docker.sock" # Mounts the docker socket

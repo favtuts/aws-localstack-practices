@@ -537,3 +537,4 @@ From now, Persistent is the feature only on LocalStack pro. For the community ed
 * https://www.devlo.io/run-localstack-with-docker-compose.html
 * https://medium.com/wearesinch/simulating-aws-environment-locally-with-aws-localstack-ad5a80413d71
 * https://tunguyen9889.medium.com/localstack-getting-started-85b5d2699eef
+* https://github.com/localstack/localstack/issues/6398
