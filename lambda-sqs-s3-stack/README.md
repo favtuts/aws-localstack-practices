@@ -347,3 +347,28 @@ Get function with name
 ```
 $ awslocal lambda list-functions --region us-east-1 --query 'Functions[?starts_with(FunctionName, `hello-python-test`) == `true`].FunctionName' --output text
 ```
+
+# Application with all services
+
+![app_all_services](./images/app_all_services.png)
+
+First of all, let’s define the infrastructure we need in a script for it. We need an S3 bucket and one SQS queue as a bare minimum.
+```python
+import boto3
+
+# use this endpoint for localstack
+endpoint_url = "http://localhost.localstack.cloud:4566"
+
+s3 = boto3.client("s3", endpoint_url=endpoint_url)
+sqs = boto3.client('sqs', endpoint_url=endpoint_url)
+lambda_client = boto3.client('lambda', endpoint_url=endpoint_url)
+
+# create bucket for an application
+create_bucket_resp = s3.create_bucket(Bucket='app-bucket', CreateBucketConfiguration={
+    'LocationConstraint': 'us-west-1'})
+
+# create queue for application
+create_queue_resp = sqs.create_queue(
+    QueueName='app-queue',
+)
+```
