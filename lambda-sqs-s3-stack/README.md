@@ -158,3 +158,25 @@ $ pipenv shell
 {'ResponseMetadata': {'RequestId': '51f5e0a0-7069-4cde-beea-b8a0354a7290', 'HostId': 's9lzHYrFp76ZVxRcpX9+5cjAnEH2ROuNkd2BHfIa6UkFVdtjf5mKR3/eTPFvsiP/XV/VLi31234=', 'HTTPStatusCode': 200, 'HTTPHeaders': {'server': 'TwistedWeb/24.3.0', 'date': 'Mon, 15 Jul 2024 02:17:51 GMT', 'content-type': 'application/xml', 'access-control-allow-origin': '*', 'access-control-allow-methods': 'HEAD,GET,PUT,POST,DELETE,OPTIONS,PATCH', 'access-control-allow-headers': 'authorization,cache-control,content-length,content-md5,content-type,etag,location,x-amz-acl,x-amz-content-sha256,x-amz-date,x-amz-request-id,x-amz-security-token,x-amz-tagging,x-amz-target,x-amz-user-agent,x-amz-version-id,x-amzn-requestid,x-localstack-target,amz-sdk-invocation-id,amz-sdk-request', 'access-control-expose-headers': 'etag,x-amz-version-id', 'vary': 'Origin', 'content-length': '270', 'x-amz-request-id': '51f5e0a0-7069-4cde-beea-b8a0354a7290', 'x-amz-id-2': 's9lzHYrFp76ZVxRcpX9+5cjAnEH2ROuNkd2BHfIa6UkFVdtjf5mKR3/eTPFvsiP/XV/VLi31234='}, 'RetryAttempts': 0}, 'Buckets': [], 'Owner': {'DisplayName': 'webfile', 'ID': '75aa57f09aa0c8caeab4f8c24e99d10f8e7faeebf76c078efc7c6caea54ba06a'}}
 (lambda-sqs-s3-stack)
 ```
+
+# Setup the VS Code Run and Debug with Python File
+* [Python debugging in VS Code](https://code.visualstudio.com/docs/python/debugging)
+
+
+# Simple Storage Service (S3)
+
+Add this code to [s3.py](s3.py) to create new bucket:
+```python
+s3 = boto3.client("s3", endpoint_url=endpoint_url)
+
+resp = s3.create_bucket(Bucket='test-bucket', CreateBucketConfiguration={
+    'LocationConstraint': 'us-west-1'})
+
+#'Location': 'http://test-bucket.s3.localhost.localstack.cloud:4566/'
+```
+
+It will create a bucket with response:
+```json
+{'ResponseMetadata': {'RequestId': '146d2903-1f3b-4bff-bfff-b39adbc81230', 'HostId': 's9lzHYrFp76ZVxRcpX9+5cjAnEH2ROuNkd2BHfIa6UkFVdtjf5mKR3/eTPFvsiP/XV/VLi31234=', 'HTTPStatusCode': 200, 'HTTPHeaders': {'server': 'TwistedWeb/24.3.0', 'date': 'Mon, 15 Jul 2024 02:35:18 GMT', 'access-control-allow-origin': '*', 'access-control-allow-methods': 'HEAD,GET,PUT,POST,DELETE,OPTIONS,PATCH', 'access-control-allow-headers': 'authorization,cache-control,content-length,content-md5,content-type,etag,location,x-amz-acl,x-amz-content-sha256,x-amz-date,x-amz-request-id,x-amz-security-token,x-amz-tagging,x-amz-target,x-amz-user-agent,x-amz-version-id,x-amzn-requestid,x-localstack-target,amz-sdk-invocation-id,amz-sdk-request', 'access-control-expose-headers': 'etag,x-amz-version-id', 'vary': 'Origin', 'location': 'http://test-bucket.s3.localhost.localstack.cloud:4566/', 'x-amz-request-id': '146d2903-1f3b-4bff-bfff-b39adbc81230', 'x-amz-id-2': 's9lzHYrFp76ZVxRcpX9+5cjAnEH2ROuNkd2BHfIa6UkFVdtjf5mKR3/eTPFvsiP/XV/VLi31234=', 'content-length': '0'}, 'RetryAttempts': 0}, 'Location': 'http://test-bucket.s3.localhost.localstack.cloud:4566/'}
+```
+
