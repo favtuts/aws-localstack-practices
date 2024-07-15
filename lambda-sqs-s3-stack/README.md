@@ -207,3 +207,72 @@ You can see the response of creating object on S3:
 [{'Key': 'test.txt', 'LastModified': datetime.datetime(2024, 7, 15, 2, 49, 13, tzinfo=tzutc()), 'ETag': '"dd18bf3a8e0a2a3e53e2661c7fb53534"', 'Size': 8, 'StorageClass': 'STANDARD'}]
 ```
 
+# Simple Queue Service (SQS)
+
+We will focus on three main aspects of SQS:
+
+* Creating a new queue
+* Sending, receiving, and deleting messages from the queue
+* Retrieving the URL of a newly created queue, which is required to send messages to it. Once you create a new queue, SQS will return a URL that can be used to send messages to the queue at a later time.
+
+```python
+sqs = boto3.client('sqs', endpoint_url=endpoint_url)
+
+create_queue_resp = sqs.create_queue(
+    QueueName='test-queue',
+)
+print(create_queue_resp)
+# 'QueueUrl': 'http://sqs.ap-southeast-1.localhost.localstack.cloud:4566/000000000000/test-queue'
+
+list_queues_resp = sqs.list_queues()
+queue_url = create_queue_resp['QueueUrls'][0]
+print(list_queues_resp)
+# 'QueueUrls': ['http://sqs.ap-southeast-1.localhost.localstack.cloud:4566/000000000000/test-queue']
+```
+
+Now, we need to verify its functionality by sending a message to it and ensuring that it has been received successfully
+```python
+message = json.dumps({"test": 1})
+send_message_resp = sqs.send_message(
+    QueueUrl=queue_url,
+    MessageBody=message
+)
+print(send_message_resp)
+# 'HTTPStatusCode': 200
+
+get_att_resp = sqs.get_queue_attributes(
+    QueueUrl=queue_url,
+    AttributeNames=[
+        'ApproximateNumberOfMessages',
+        'QueueArn'
+    ]
+)
+print(get_att_resp)
+# {'ApproximateNumberOfMessages': '1', 'QueueArn': 'arn:aws:sqs:ap-southeast-1:000000000000:test-queue'}
+```
+
+We should perform the receiving of this message and delete it from the queue
+```python
+#receive the message
+received_message = sqs.receive_message(
+    QueueUrl=queue_url,
+    MaxNumberOfMessages=1
+)
+
+# delete received message
+receipt_handle = received_message['Messages'][0]['ReceiptHandle']
+delete_message_resp = sqs.delete_message(
+    QueueUrl=queue_url,
+    ReceiptHandle=receipt_handle,
+)
+
+print(received_message['Messages'][0]['Body'])
+# '{"test": 1}'
+```
+
+Finally, let’s delete the queue, as we no longer need it.
+```python
+response = sqs.delete_queue(
+    QueueUrl=queue_url
+)
+```
