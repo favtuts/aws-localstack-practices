@@ -180,3 +180,30 @@ It will create a bucket with response:
 {'ResponseMetadata': {'RequestId': '146d2903-1f3b-4bff-bfff-b39adbc81230', 'HostId': 's9lzHYrFp76ZVxRcpX9+5cjAnEH2ROuNkd2BHfIa6UkFVdtjf5mKR3/eTPFvsiP/XV/VLi31234=', 'HTTPStatusCode': 200, 'HTTPHeaders': {'server': 'TwistedWeb/24.3.0', 'date': 'Mon, 15 Jul 2024 02:35:18 GMT', 'access-control-allow-origin': '*', 'access-control-allow-methods': 'HEAD,GET,PUT,POST,DELETE,OPTIONS,PATCH', 'access-control-allow-headers': 'authorization,cache-control,content-length,content-md5,content-type,etag,location,x-amz-acl,x-amz-content-sha256,x-amz-date,x-amz-request-id,x-amz-security-token,x-amz-tagging,x-amz-target,x-amz-user-agent,x-amz-version-id,x-amzn-requestid,x-localstack-target,amz-sdk-invocation-id,amz-sdk-request', 'access-control-expose-headers': 'etag,x-amz-version-id', 'vary': 'Origin', 'location': 'http://test-bucket.s3.localhost.localstack.cloud:4566/', 'x-amz-request-id': '146d2903-1f3b-4bff-bfff-b39adbc81230', 'x-amz-id-2': 's9lzHYrFp76ZVxRcpX9+5cjAnEH2ROuNkd2BHfIa6UkFVdtjf5mKR3/eTPFvsiP/XV/VLi31234=', 'content-length': '0'}, 'RetryAttempts': 0}, 'Location': 'http://test-bucket.s3.localhost.localstack.cloud:4566/'}
 ```
 
+
+Now we can add an object to the created bucket
+```python
+response = s3.put_object(
+    Body='test.txt',
+    Bucket='test-bucket',
+    Key='test.txt',
+)
+
+print(response)
+# 'HTTPStatusCode': 200
+
+list_obj_resp = s3.list_objects_v2(
+    Bucket='test-bucket'
+)
+
+print(list_obj_resp['Contents'])
+# [{'Key': 'test.txt',
+# 'LastModified': datetime.datetime(2024, 3, 9, 10, 6, 7, tzinfo=tzutc()),
+# 'Size': 8, 'StorageClass': 'STANDARD'}]
+```
+
+You can see the response of creating object on S3:
+```json
+[{'Key': 'test.txt', 'LastModified': datetime.datetime(2024, 7, 15, 2, 49, 13, tzinfo=tzutc()), 'ETag': '"dd18bf3a8e0a2a3e53e2661c7fb53534"', 'Size': 8, 'StorageClass': 'STANDARD'}]
+```
+
