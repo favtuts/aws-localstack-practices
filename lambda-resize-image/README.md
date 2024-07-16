@@ -1,5 +1,5 @@
 # LocalStack – Mock AWS in local development
-* https://tuts.heomi.net/localstack-mock-aws-in-local-development/#ftoc-heading-9
+* https://tuts.heomi.net/localstack-mock-aws-in-local-development
 
 # Installation & Setup
 
